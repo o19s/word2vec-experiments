@@ -2,35 +2,8 @@ from gensim.test.utils import common_texts
 from gensim.models.doc2vec import Doc2Vec, TaggedDocument
 import numpy as np
 from elasticsearch import Elasticsearch
-
-def analyzed_text(es, index, field, text):
-    body = {
-        "field": field,
-        "text": text
-    }
-    resp = es.indices.analyze(index=index, body=body)
-
-    rVal = [token['token'] for token in resp['tokens']]
-    return rVal
-
-
-def TaggedDocsFromJson(es, index='tmdb', fname='tmdb57k.json'):
-    """ Use specified ES analysis, but pull
-        from tmdb.json"""
-
-    import json
-    movies = json.load(open(fname))
-
-    for idx, (tmdb_id, movie) in enumerate(movies.items()):
-        if 'overview' in movie and movie['overview'] is not None:
-            overview_terms = analyzed_text(es=es, index=index,
-                                           field='overview',
-                                           text=movie['overview'])
-        if (idx % 100 == 0):
-            print("Processed %s docs" % idx)
-        yield TaggedDocument(overview_terms, [tmdb_id])
-
-
+import json
+import os.path
 
 
 
@@ -65,11 +38,11 @@ def random_projection(vecs):
     # Random projections
     # Create a random hyperplane into wordvecs,
     # then split into rhs (> 0) and lhs (<= 0)
-    print(vecs.shape)
     # Very naive split
     rhs = np.array([])
     lhs = np.array([])
-    while lhs.shape[0] == 0 or rhs.shape[0] == 0:
+    min_size = 0.3 * vecs.shape[0]
+    while lhs.shape[0] < min_size or rhs.shape[0] < min_size:
         rand_vect = (np.random.rand(vecs.shape[1])-0.5) * np.max(vecs)
         dots = np.dot(vecs, rand_vect)
         rhs = vecs[dots > 0]
@@ -79,8 +52,8 @@ def random_projection(vecs):
 class Split():
     def __init__(self, vecs, depth=10):
         self.lhs = self.rhs = None
-        if vecs.shape[0] < 5:
-            self.vecs = vecs
+        self.vecs = vecs
+        if vecs.shape[0] < 50:
             return
 
         rand_vect, rhs, lhs = random_projection(vecs)
@@ -91,8 +64,6 @@ class Split():
                 self.lhs = Split(lhs, depth=depth-1)
             if rhs.shape[0] > 0:
                 self.rhs = Split(rhs, depth=depth-1)
-        if self.is_leaf():
-            self.vecs = vecs
 
 
     def is_leaf(self):
@@ -117,21 +88,72 @@ class Split():
             return self.lhs.eval(vec)
 
 
+def train(docs):
+    tag_docs = [TaggedDocument(terms, doc_id) for doc_id, terms in docs.items()]
+    print("training on %s docs" % len(tag_docs))
+    model = Doc2Vec(tag_docs, vector_size=32, window=50, min_count=2, workers=4)
+    return model
+
+
+def prepare_model(es):
+    from analyzed_docs import load, save, docs_from_json
+
+    model_file = 'tmdbdoc2vec.model'
+
+    if os.path.isfile(model_file):
+        model = Doc2Vec.load(model_file)
+        return model
+
+    data_file = 'analyzed.json'
+    if os.path.isfile(data_file):
+        print("Attempting to Load Preanalyzed Data")
+        docs = {doc_id: doc
+                for (doc_id, doc)
+                in load(in_file=data_file)}
+    else:
+        docs = {doc_id: doc
+                for (doc_id, doc)
+                in docs_from_json(es)}
+        save(docs, out_file=data_file)
+
+
+    print("Training")
+    model = train(docs)
+    model.save(model_file)
+
+    return model
+
+
+
 
 if __name__ == "__main__":
-    es=Elasticsearch()
-    #documents = [doc for doc in TaggedDocsFromJson(es=es)]
-    #model = Doc2Vec(documents, vector_size=25, window=2, min_count=1, workers=4)
-    #model.save("tmdbdoc2vec.model")
-    model = Doc2Vec.load('tmdbdoc2vec.model')
-    rp_tree = Split(model.wv.syn0)
-    rambo = model.docvecs['7555']
-    star_wars = model.docvecs['11']
-    clone_wars = model.docvecs['12180']
+    from sys import argv
+    from analyzed_docs import overview_text
+    es = Elasticsearch()
+    model = prepare_model(es)
+    print(model.similar_by_word(overview_text(es, argv[1])[0]))
 
-    #print(rp_tree.eval_path(rambo))
-    print(rp_tree.eval_path(star_wars))
-    print(rp_tree.eval_path(clone_wars))
+
+
+
+    #model = Doc2Vec.load('tmdbdoc2vec.model')
+    for i in range(0,10):
+        rp_tree = Split(model.docvecs.doctag_syn0, depth=20)
+        rambo = model.docvecs['7555']
+        star_wars = model.docvecs['11']
+        clone_wars = model.docvecs['12180']
+        empire_strikes_back = model.docvecs['1891']
+        return_of_the_jedi = model.docvecs['1892']
+
+        #print(rp_tree.eval_path(rambo))
+        print("Star Wars  %s" % rp_tree.eval_path(star_wars))
+        print("Empire SB  %s" % rp_tree.eval_path(empire_strikes_back))
+        print("Return Jd  %s" % rp_tree.eval_path(return_of_the_jedi))
+        print("Clone Wars %s" % rp_tree.eval_path(clone_wars))
+        print("----")
+        print("Rambo      %s" % rp_tree.eval_path(rambo))
+        print()
+        print()
 
     #vecs = rp_tree.eval(rambo)
     #import pdb; pdb.set_trace()
