@@ -50,7 +50,8 @@ non_english_movies = ['79633', '17605', '74566',
                       '22728', '75193', '97128',
                       '13710', '40055', '19268',
                       '19147', '37050', '76241',
-                      '50025']
+                      '50025', '14558', '38870',
+                      '77600']
 
 
 def docs_from_json(es, index='tmdb', fname='tmdb57k.json'):
@@ -71,8 +72,9 @@ def docs_from_json(es, index='tmdb', fname='tmdb57k.json'):
             #               for i in range(len(analyzed)-1)]
 
             #yield TaggedDocument(analyzed_terms, [tmdb_id])
-            if 'original_language' in movie:
-                print("Indexing %s lang %s" % (tmdb_id, movie['original_language']))
+            if len(analyzed_terms) < 40:
+                print("Skipping short movie %s" % (movie['title']))
+                continue
             if tmdb_id in non_english_movies:
                 print("Blacklist %s lang %s" % (tmdb_id, movie['original_language']))
                 continue

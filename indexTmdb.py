@@ -24,6 +24,7 @@ def indexableMovies():
                    'release_date': releaseDate,
                    'vote_average': float(tmdbMovie['vote_average']) if 'vote_average' in tmdbMovie else None,
                    'vote_count': int(tmdbMovie['vote_count']) if 'vote_count' in tmdbMovie else 0,
+                   'original_language': tmdbMovie['original_language'] if 'original_language' in tmdbMovie else 'unknown',
                    }
         except KeyError as k: # Ignore any movies missing these attributes
             print(k)

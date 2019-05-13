@@ -54,17 +54,19 @@ class Colocations:
         for term_stats in self.w1_track[term1]:
             if term_stats[0] == term2:
                 term1_w_term2 = term_stats[1]
+        if term1 == 'new':
+            import pdb; pdb.set_trace()
 
         term1_wo_term2 = term1_count - term1_w_term2
         term2_wo_term1 = term2_count - term1_w_term2
         neither_term1_nor_term2 = self.all_df - max(term1_count, term2_count)
 
-        chi_sq_num = self.all_df * (term1_w_term2 * neither_term1_nor_term2 - term1_wo_term2 * term2_wo_term1)
+        chi_sq_num = self.all_df * ((term1_w_term2 * neither_term1_nor_term2 - term1_wo_term2 * term2_wo_term1)**2)
 
         col1 = term1_w_term2 + term1_wo_term2
         col2 = term2_wo_term1 + neither_term1_nor_term2
-        row1 = term1_w_term2 + term2_wo_term1
-        row2 = term1_wo_term2 + neither_term1_nor_term2
+        row1 = term1_w_term2 + term1_wo_term2
+        row2 = term2_wo_term1 + neither_term1_nor_term2
 
         chi_sq_denom = (col1*col2*row1*row2)
 
@@ -103,7 +105,7 @@ class Colocations:
 if __name__ == "__main__":
     coloc = Colocations()
     scored_bigrams = coloc.score_all(min_term_count=10)
-    for i in range(0,10000):
+    for i in range(0,100):
         bg = scored_bigrams.pop()
-        print("%s %s => %s" % (bg[1], bg[2], "%s_%s" % (bg[1],bg[2])))
+        print("%s %s %s => %s" % (bg[0], bg[1], bg[2], "%s_%s" % (bg[1],bg[2])))
 
