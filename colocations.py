@@ -54,8 +54,6 @@ class Colocations:
         for term_stats in self.w1_track[term1]:
             if term_stats[0] == term2:
                 term1_w_term2 = term_stats[1]
-        if term1 == 'new':
-            import pdb; pdb.set_trace()
 
         term1_wo_term2 = term1_count - term1_w_term2
         term2_wo_term1 = term2_count - term1_w_term2

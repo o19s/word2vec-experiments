@@ -88,14 +88,14 @@
             "text_std_tax_phrase"
           ],
           "fields": {
-            "colocs": {
+            "no_stop": {
               "type": "text",
-              "analyzer": "english_coloc"
+              "analyzer": "my_english_no_stop"
             },
             "bigrams": {
               "type": "text",
-              "fielddata": true, 
-              "analyzer": "my_english_no_stop_bigrams"
+              "fielddata": true,
+              "analyzer": "my_english_bigrams"
             }
           }
         },
@@ -277,11 +277,6 @@
             "sci fi, scifi, science fiction => science_fiction"
           ]
         },
-        "syn_coloc": {
-          "type": "synonym",
-          "synonyms": [
-          ]
-        },
         "semantic_idioms": {
           "type": "synonym",
           "synonyms": [
@@ -374,7 +369,7 @@
             "english_stem"
           ]
         },
-        "english_coloc": {
+        "my_english_no_stop": {
           "type": "custom",
           "char_filter": [
             "html_strip"
@@ -385,11 +380,10 @@
             "english_possessive_stem",
             "syn_directed",
             "english_keywords",
-            "english_stem",
-            "syn_coloc"
+            "english_stem"
           ]
         },
-        "my_english_no_stop_bigrams": {
+        "my_english_bigrams": {
           "type": "custom",
           "char_filter": [
             "html_strip"

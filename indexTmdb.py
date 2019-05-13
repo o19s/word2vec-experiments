@@ -9,7 +9,7 @@ def indexableMovies():
         try:
             releaseDate = None
             if 'release_date' in tmdbMovie and len(tmdbMovie['release_date']) > 0:
-                releaseDate = tmdbMovie['release_date'] #+ 'T00:00:00Z'
+                releaseDate = tmdbMovie['release_date']
 
             if movieId == '374430':
                 print(tmdbMovie['vote_count'])
@@ -24,25 +24,14 @@ def indexableMovies():
                    'release_date': releaseDate,
                    'vote_average': float(tmdbMovie['vote_average']) if 'vote_average' in tmdbMovie else None,
                    'vote_count': int(tmdbMovie['vote_count']) if 'vote_count' in tmdbMovie else 0,
-                   'original_language': tmdbMovie['original_language'] if 'original_language' in tmdbMovie else 'unknown',
                    }
         except KeyError as k: # Ignore any movies missing these attributes
             print(k)
             continue
 
-
-def load_synonyms(schema, filename='idioms2.txt'):
-    with open(filename) as f:
-        syns = f.read()
-        syns = syns.split('\n')
-        schema['settings']['analysis']['filter']['syn_coloc']['synonyms'] = syns
-
-
 def reindex(es, movieDict={}, schema='schema.json', index='tmdb'):
     import elasticsearch.helpers
     settings = json.load(open(schema))
-
-    load_synonyms(settings)
 
     es.indices.delete(index, ignore=[400, 404])
     es.indices.create(index, body=settings)
