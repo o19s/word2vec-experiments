@@ -10,6 +10,9 @@ Some experimentation with word2vec
 
 ## Playing with collocations
 
+Statistically significant collocations dumped from TMDB movie overview text.
+
+
 ```
 wget http://es-learn-to-rank.labs.o19s.com/tmdb57k.json
 python indexTmdb.py
